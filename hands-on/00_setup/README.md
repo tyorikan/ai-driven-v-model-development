@@ -45,7 +45,7 @@ gemini
 以下のコマンドで Gemini CLI が正しく動作するか確認します。
 
 ```bash
-gemini -p "「Hello, World!」と返してください。"
+gemini -p "「Hello, World\!」と返してください。"
 ```
 
 「Hello, World!」と返答があれば、セットアップ完了です。

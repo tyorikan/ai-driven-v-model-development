@@ -19,7 +19,7 @@
 
 ## やること
 
-基本設計書を基に、Gemini CLI で**詳細設計書**を生成します。
+基本設計書を基に、AI が自律的に**詳細設計書**を生成・保存・レビュー・修正します。
 
 ---
 
@@ -34,15 +34,21 @@ gemini
 
 ### 2. 以下のプロンプトを入力
 
-> 末尾の `@../03_basic_design/basic_design.md` で前工程の基本設計書が読み込まれます。
-
 ````
 あなたは Python (FastAPI / SQLAlchemy 2.0 / Pydantic v2) の
 シニアエンジニアです。
 
 以下の基本設計書を基に、詳細設計書を作成してください。
 
-## 作業手順
+## 以下の 3 つのフェーズを順番に自律的に実行してください
+
+---
+
+### Phase 1: 成果物の生成と保存
+
+以下の作業手順と出力形式に従って詳細設計書を作成し、`detailed_design.md` に保存してください。
+
+#### 作業手順
 
 1. 基本設計書の ER 図から SQLAlchemy 2.0 のモデルクラスを設計する
 2. Pydantic v2 のスキーマクラス（Request/Response）を設計する
@@ -50,34 +56,34 @@ gemini
 4. 主要な処理のシーケンス図を Mermaid 記法で作成する
 5. エラーハンドリングの設計を行う
 
-## 出力形式
+#### 出力形式
 
-### 1. SQLAlchemy モデルクラス設計
+##### 1. SQLAlchemy モデルクラス設計
 
 基本設計の ER 図に基づき、全テーブル分のモデルクラスを Python 擬似コードで記述すること。
 SQLAlchemy 2.0 の `Mapped[]` と `mapped_column` を使用すること。
 
-### 2. Pydantic スキーマ設計
+##### 2. Pydantic スキーマ設計
 
 全 API のリクエスト/レスポンスに対応するスキーマを記述すること。
 Pydantic v2 の `BaseModel` + `model_config = ConfigDict(from_attributes=True)` を使用すること。
 
-### 3. サービスクラス設計
+##### 3. サービスクラス設計
 
 以下のサービスクラスを設計:
 
-#### AttendanceService（勤怠サービス）
+###### AttendanceService（勤怠サービス）
 - `clock_in(employee_id, clock_in_time, location)` → 出勤打刻
 - `clock_out(employee_id, clock_out_time)` → 退勤打刻
 - `calculate_daily_summary(employee_id, date)` → 日次集計
 - `calculate_monthly_summary(employee_id, year, month)` → 月次集計
 
-#### LeaveService（休暇サービス）
+###### LeaveService（休暇サービス）
 - `get_balance(employee_id)` → 有給残日数取得
 - `request_leave(employee_id, leave_type, start, end)` → 休暇申請
 - `approve_leave(request_id, approver_id)` → 休暇承認
 
-#### AlertService（アラートサービス）
+###### AlertService（アラートサービス）
 - `check_overtime_threshold(employee_id, year, month)` → 36協定チェック
 - `check_missing_clock(date)` → 打刻漏れチェック
 - `check_leave_obligation(employee_id)` → 有給5日取得義務チェック
@@ -87,11 +93,11 @@ Pydantic v2 の `BaseModel` + `model_config = ConfigDict(from_attributes=True)` 
 - 処理ステップ（箇条書き）
 - 発生しうるエラーとエラーコード
 
-### 4. 勤務時間計算ロジック（最重要）
+##### 4. 勤務時間計算ロジック（最重要）
 
 以下の計算ロジックを詳細に定義すること:
 
-#### 通常勤務（固定時間制: 9:00〜18:00、休憩1時間）
+###### 通常勤務（固定時間制: 9:00〜18:00、休憩1時間）
 - 所定労働時間: 8時間
 - 法定外残業: 8時間を超えた部分
 - 深夜勤務: 22:00〜翌5:00 の部分
@@ -100,7 +106,7 @@ Pydantic v2 の `BaseModel` + `model_config = ConfigDict(from_attributes=True)` 
 - 出勤 9:00 / 退勤 20:00 → 拘束11h、休憩1h、実働10h、法定外残業2h
 - 出勤 9:00 / 退勤 23:30 → 拘束14.5h、休憩1h、実働13.5h、法定外残業5.5h、深夜1.5h
 
-#### フレックスタイム制（コアタイム 10:00〜15:00）
+###### フレックスタイム制（コアタイム 10:00〜15:00）
 - 清算期間: 1ヶ月
 - 月の所定労働時間 = 所定労働日数 × 8時間
 - 月の総実労働時間が所定労働時間を超えた部分が残業
@@ -109,17 +115,61 @@ Pydantic v2 の `BaseModel` + `model_config = ConfigDict(from_attributes=True)` 
 - 所定労働日数 20日 → 所定労働時間 160h
 - 月の総実労働時間 175h → 残業 15h
 
-### 5. シーケンス図（Mermaid 記法）
+##### 5. シーケンス図（Mermaid 記法）
 
 以下の 3 つのシーケンス図を作成:
 1. 出勤打刻 → 日次集計の処理フロー
 2. 休暇申請 → 承認の処理フロー
 3. 月次集計 → 36協定チェック → アラート通知の処理フロー
 
-### 6. エラーコード一覧
+##### 6. エラーコード一覧
 
 | エラーコード | HTTP Status | メッセージ | 発生条件 |
 |------------|-------------|-----------|---------|
+
+---
+
+### Phase 2: セルフレビューと修正
+
+`detailed_design.md` を読み直し、以下の確認項目を1つずつチェックしてください。
+問題が見つかった場合は修正して `detailed_design.md` を更新し、再度チェックしてください。
+**全ての項目が ✅ になるまでこのサイクルを繰り返してください。**
+
+確認項目:
+- [ ] 全テーブルの SQLAlchemy モデルが定義されているか
+- [ ] 全 API のリクエスト/レスポンスの Pydantic スキーマがあるか
+- [ ] 勤務時間の計算ロジックに具体的な計算例があるか
+- [ ] 計算例の数値が正しいか（手計算で検算する）
+- [ ] 深夜勤務の計算が正しいか（22:00〜翌5:00）
+- [ ] フレックスタイム制の残業計算ロジックがあるか
+- [ ] 3 つのシーケンス図が全て含まれているか
+- [ ] シーケンス図が Mermaid 記法として正しいか
+- [ ] エラーコード一覧が網羅的か
+
+---
+
+### Phase 3: 完了報告
+
+全ての確認項目をクリアしたら、以下の形式で完了報告を出力してください:
+
+```
+## 完了報告
+
+### チェック結果
+- [x] 確認項目1: ✅
+...
+
+### 修正サマリー
+（Phase 2 で修正した箇所があれば記載。なければ「修正なし」）
+
+### 成果物
+- 保存先: detailed_design.md
+- SQLAlchemy モデル数: XX
+- Pydantic スキーマ数: XX
+- サービスクラス数: XX
+- シーケンス図数: XX
+- エラーコード数: XX
+```
 
 ## やってはいけないこと
 
@@ -127,30 +177,8 @@ Pydantic v2 の `BaseModel` + `model_config = ConfigDict(from_attributes=True)` 
 - Pydantic v1 の記法（`class Config:`）を使わないこと（v2 の `model_config` を使用）
 - SQLAlchemy 1.x の記法（`Column()`）を使わないこと（2.0 の `Mapped[]` を使用）
 
-## 品質チェックリスト
-
-- [ ] 全テーブルの SQLAlchemy モデルが定義されているか
-- [ ] 全 API のリクエスト/レスポンスの Pydantic スキーマがあるか
-- [ ] 勤務時間の計算ロジックに具体的な計算例があるか
-- [ ] 深夜勤務の計算が正しいか（22:00〜翌5:00）
-- [ ] フレックスタイム制の残業計算ロジックがあるか
-- [ ] 3 つのシーケンス図が全て含まれているか
-- [ ] エラーコード一覧が網羅的か
-
 @../03_basic_design/basic_design.md
 ````
-
-### 3. 生成結果をレビュー
-
-- [ ] 勤務時間の計算例が正しいか（手計算で検算する）
-- [ ] 深夜勤務時間の定義が 22:00〜翌5:00 になっているか
-- [ ] フレックスタイム制の清算期間が1ヶ月単位になっているか
-- [ ] シーケンス図が Mermaid 記法として正しいか
-- [ ] エラーコードが全てのエラーケースをカバーしているか
-
-### 4. 結果を保存
-
-生成結果を `detailed_design.md` として保存してください。
 
 ---
 
@@ -160,11 +188,11 @@ Pydantic v2 の `BaseModel` + `model_config = ConfigDict(from_attributes=True)` 
 |------------|------|
 | 計算ロジックの明示 | AI に「計算例」を含めるよう指示することで、ロジックの正確性を検証できる |
 | 技術バージョンの指定 | SQLAlchemy 2.0、Pydantic v2 など、バージョンを明示して古い記法を防ぐ |
-| シーケンス図の活用 | 処理の流れを図で確認することで、設計の抜け漏れを発見しやすくなる |
+| AI による自己検算 | Phase 2 で計算例の正しさを AI 自身に検証・修正させる |
 | V字モデルの対応 | ここで設計したメソッドが、Step 07 の単体テストで検証される |
 
 ---
 
 ## 次のステップ
 
-詳細設計書のレビューが完了したら、[Step 05: コーディング](../05_coding/README.md) に進んでください。
+AI の完了報告を確認したら、[Step 05: コーディング](../05_coding/README.md) に進んでください。
